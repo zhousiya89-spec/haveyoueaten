@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>吃了吗 - 每一个饭点都值得温柔对待</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #FFF9F0; }
+        .shutter-btn { background-color: #FF8A5B; }
+        .shutter-btn:active { transform: scale(0.9); }
+        /* 隐藏滚动条但保留功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-screen flex flex-col justify-between font-sans overflow-hidden select-none">
+
+    <header id="appHeader" class="p-8 text-center mt-12 transition-all">
+        <h1 class="text-5xl font-bold text-gray-900 tracking-tighter mb-4">吃了吗</h1>
+        <p class="text-lg text-gray-500 leading-relaxed font-light">每一个平凡的饭点，<br>都值得被温柔对待。</p>
+    </header>
+
+    <main class="flex-1 relative overflow-hidden">
+        
+        <div id="startView" class="h-full flex flex-col justify-center items-center">
+            <div class="relative">
+                <div class="absolute inset-0 bg-orange-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                <button id="captureBtn" class="shutter-btn relative w-52 h-52 rounded-full flex flex-col justify-center items-center shadow-2xl border-[12px] border-white transition-all">
+                    <span class="text-white text-3xl font-bold tracking-widest">吃了吗</span>
+                    <span class="text-white/80 text-xs mt-2 font-light">记录生活温度</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="cameraView" class="hidden fixed inset-0 bg-black flex flex-col items-center justify-between z-50">
+            <div class="w-full p-6"><button onclick="location.reload()" class="text-white text-2xl">✕</button></div>
+            <video id="video" autoplay playsinline class="w-full h-2/3 object-cover"></video>
+            <div class="w-full pb-20 flex flex-col items-center">
+                <button id="shutter" class="w-24 h-24 bg-white rounded-full border-[10px] border-gray-300 shadow-2xl active:scale-90 transition-all"></button>
+            </div>
+        </div>
+
+        <canvas id="canvas" class="hidden"></canvas>
+        <div id="photoPreview" class="hidden h-full flex flex-col items-center p-6 bg-[#FFF9F0]">
+            <img id="photo" class="w-full rounded-[2rem] shadow-2xl border-4 border-white mb-8 max-h-[60vh] object-cover" />
+            <div class="flex gap-4 w-full">
+                <button id="retake" class="flex-1 py-4 bg-gray-200 rounded-2xl font-bold text-gray-500">重拍</button>
+                <button id="save" class="flex-[2] py-4 bg-orange-500 rounded-2xl font-bold text-white shadow-lg">发布烟火</button>
+            </div>
+        </div>
+
+        <section id="squareView" class="hidden h-full overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">此刻烟火</h1>
+            <p class="text-gray-400 text-sm mb-8 italic">“总有人在陪你吃饭”</p>
+            <div id="feedContainer" class="flex flex-col gap-6"></div>
+        </section>
+
+        <section id="discoveryView" class="hidden h-full flex flex-col px-6 pt-4 bg-[#FFF9F0]">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">今天吃啥</h1>
+            <p class="text-gray-400 text-sm mb-12">纠结结束，交给命运</p>
+            <div class="flex-1 flex flex-col justify-center items-center pb-20">
+                <div class="w-64 h-64 bg-white rounded-full shadow-xl border-[10px] border-white flex items-center justify-center relative">
+                    <div id="foodResult" class="text-2xl font-bold text-orange-600 px-4 text-center">？</div>
+                </div>
+                <button id="spinBtn" class="mt-12 px-12 py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">开启盲盒</button>
+                <p id="healthTip" class="mt-6 text-sm text-gray-400 opacity-0 transition-opacity italic">建议吃点清淡的哦</p>
+            </div>
+        </section>
+
+        <section id="familyView" class="hidden h-full flex flex-col px-6 pt-4">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">家人牵挂</h1>
+            <div class="mt-10 p-8 bg-white rounded-[2rem] border border-orange-100 shadow-sm text-center">
+                <div class="text-4xl mb-4">🏠</div>
+                <h3 class="text-xl font-bold text-gray-800">邀请家人</h3>
+                <p class="text-gray-500 mt-2 text-sm leading-relaxed">绑定后，他们会准时收到你的用餐提醒。</p>
+                <button class="mt-8 w-full py-4 bg-orange-50 text-orange-600 rounded-2xl font-bold border border-orange-100">生成邀请链接</button>
+            </div>
+        </section>
+
+    </main>
+
+    <nav class="bg-white/90 backdrop-blur-md border-t border-orange-50 p-4 flex justify-around items-center pb-10 z-40">
+        <div class="flex flex-col items-center gap-1 cursor-pointer transition-colors text-gray-400">
+            <span class="text-xl">🌍</span><span class="text-[10px]">广场</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 cursor-pointer transition-colors text-orange-500 font-bold">
+            <span class="text-xl">📸</span><span class="text-[10px]">记录</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 cursor-pointer transition-colors text-gray-400">
+            <span class="text-xl">🎲</span><span class="text-[10px]">吃啥</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 cursor-pointer transition-colors text-gray-400">
+            <span class="text-xl">🏠</span><span class="text-[10px]">家人</span>
+        </div>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
