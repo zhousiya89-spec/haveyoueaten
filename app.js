@@ -12,39 +12,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const navItems = document.querySelectorAll('nav > div');
     const feedContainer = document.getElementById('feedContainer');
 
-    // 1. 核心导航切换函数
+    // --- 核心切换逻辑 (修复版) ---
     function switchView(viewName) {
-        // 隐藏所有页面
-        Object.values(views).forEach(v => {
-            if (v) v.classList.add('hidden'); // 增加一个保险判断
-        });
-        
-        // 显示目标页面
-        if (views[viewName]) {
-            views[viewName].classList.remove('hidden');
-        }
+        Object.values(views).forEach(v => v && v.classList.add('hidden'));
+        if (views[viewName]) views[viewName].classList.remove('hidden');
 
-        // 显示导航栏 (除非是在相机页)
         const nav = document.querySelector('nav');
-        if (nav) nav.classList.toggle('hidden', viewName === 'camera');
-        
-        // 更新导航图标颜色 (支持 4 个按钮)
-        navItems.forEach((item, idx) => {
-            const isSquare = (viewName === 'square' && idx === 0);
-            const isHome = (viewName === 'start' && idx === 1);
-            const isDiscovery = (viewName === 'discovery' && idx === 2);
-            const isFamily = (viewName === 'family' && idx === 3);
-            
-            if (isSquare || isHome || isDiscovery || isFamily) {
-                item.classList.add('text-orange-500');
-                item.classList.remove('text-gray-400');
+        // 关键修复：拍照(camera) 和 预览(preview) 时，都要隐藏导航栏
+        if (nav) {
+            if (viewName === 'camera' || viewName === 'preview') {
+                nav.classList.add('hidden');
             } else {
-                item.classList.remove('text-orange-500');
-                item.classList.add('text-gray-400');
+                nav.classList.remove('hidden');
             }
+        }
+        
+        // 更新导航高亮
+        navItems.forEach((item, idx) => {
+            const isActive = (viewName === 'square' && idx === 0) || 
+                           (viewName === 'start' && idx === 1) || 
+                           (viewName === 'discovery' && idx === 2) || 
+                           (viewName === 'family' && idx === 3);
+            item.classList.toggle('text-orange-500', isActive);
+            item.classList.toggle('text-gray-400', !isActive);
         });
     }
-
     // 2. 绑定导航点击事件
     if (navItems.length >= 4) {
         navItems[0].onclick = () => switchView('square');    // 广场
