@@ -51,34 +51,51 @@ document.querySelectorAll('.mood-tag').forEach(tag => {
 
     const navItems = document.querySelectorAll('nav > div');
     const feedContainer = document.getElementById('feedContainer');
+// --- 核心切换逻辑 (全局版) ---
+window.switchView = function(viewName) {
+    // 1. 获取所有视图元素
+    const allViews = {
+        start: document.getElementById('startView'),
+        camera: document.getElementById('cameraView'),
+        preview: document.getElementById('photoPreview'),
+        square: document.getElementById('squareView'),
+        family: document.getElementById('familyView'),
+        discovery: document.getElementById('discoveryView'),
+        match: document.getElementById('matchModal')
+    };
 
-    // --- 核心切换逻辑 ---
-    // --- 核心切换逻辑 (修复版) ---
-    function switchView(viewName) {
-        Object.values(views).forEach(v => v && v.classList.add('hidden'));
-        if (views[viewName]) views[viewName].classList.remove('hidden');
+    // 2. 隐藏所有视图
+    Object.values(allViews).forEach(v => {
+        if (v) v.classList.add('hidden');
+    });
 
-        const nav = document.querySelector('nav');
-        // 关键修复：拍照(camera) 和 预览(preview) 时，都要隐藏导航栏
-        if (nav) {
-            if (viewName === 'camera' || viewName === 'preview') {
-                nav.classList.add('hidden');
-            } else {
-                nav.classList.remove('hidden');
-            }
-        }
-        
-        // 更新导航高亮
-        navItems.forEach((item, idx) => {
-            const isActive = (viewName === 'square' && idx === 0) || 
-                           (viewName === 'start' && idx === 1) || 
-                           (viewName === 'discovery' && idx === 2) || 
-                           (viewName === 'family' && idx === 3);
-            item.classList.toggle('text-orange-500', isActive);
-            item.classList.toggle('text-gray-400', !isActive);
-        });
+    // 3. 显示目标视图
+    if (allViews[viewName]) {
+        allViews[viewName].classList.remove('hidden');
     }
 
+    // 4. 处理导航栏显示/隐藏
+    const nav = document.querySelector('nav');
+    if (nav) {
+        if (viewName === 'camera' || viewName === 'preview') {
+            nav.classList.add('hidden');
+        } else {
+            nav.classList.remove('hidden');
+        }
+    }
+    
+    // 5. 更新导航栏图标高亮状态
+    const navItems = document.querySelectorAll('nav > div');
+    navItems.forEach((item, idx) => {
+        // 根据索引判断哪个图标该变色
+        const isActive = (viewName === 'square' && idx === 0) || 
+                       (viewName === 'start' && idx === 1) || 
+                       (viewName === 'discovery' && idx === 2) || 
+                       (viewName === 'family' && idx === 3);
+        item.classList.toggle('text-orange-500', isActive);
+        item.classList.toggle('text-gray-400', !isActive);
+    });
+};
     // --- 联网功能：拉取云端动态 ---
     // --- 联网功能：拉取云端动态 ---
     async function fetchPosts() {
@@ -159,7 +176,7 @@ document.querySelectorAll('.mood-tag').forEach(tag => {
     }
 
     // --- 交互绑定 ---
-    navItems[0].onclick = () => { switchView('square'); fetchPosts(); };
+    navItems[0].onclick = () => { window.switchView('square'); window.fetchPosts(); };
     navItems[1].onclick = () => switchView('start');
     navItems[2].onclick = () => switchView('discovery');
     navItems[3].onclick = () => switchView('family');
