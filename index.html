@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>吃了吗 - 每一个饭点都值得温柔对待</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background-color: #FFF9F0; }
         .shutter-btn { background-color: #FF8A5B; }
@@ -42,8 +43,18 @@
         </div>
 
         <canvas id="canvas" class="hidden"></canvas>
-        <div id="photoPreview" class="hidden h-full flex flex-col items-center p-6 bg-[#FFF9F0]">
-            <img id="photo" class="w-full rounded-[2rem] shadow-2xl border-4 border-white mb-8 max-h-[60vh] object-cover" />
+        <div id="photoPreview" class="hidden h-full flex flex-col items-center p-6 bg-[#FFF9F0] overflow-y-auto no-scrollbar">
+            <img id="photo" class="w-full rounded-[2rem] shadow-2xl border-4 border-white mb-4 max-h-[45vh] object-cover" />
+            <div class="w-full px-2 mb-6">
+                <p class="text-[10px] text-gray-400 mb-3 ml-2 uppercase tracking-widest">此刻心情</p>
+                <div id="moodOptions" class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="🏃 工作餐">🏃 工作餐</span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="🍚 慢慢吃">🛋️ 慢慢啃</span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="💻 加班中">💻 加班中</span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="👨‍👩‍👧 陪家人">👨‍👩‍👧 陪家人</span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="😋 味道赞">😋 味道赞</span>
+                </div>
+            </div>
             <div class="flex gap-4 w-full">
                 <button id="retake" class="flex-1 py-4 bg-gray-200 rounded-2xl font-bold text-gray-500">重拍</button>
                 <button id="save" class="flex-[2] py-4 bg-orange-500 rounded-2xl font-bold text-white shadow-lg">发布烟火</button>
@@ -77,7 +88,40 @@
                 <button class="mt-8 w-full py-4 bg-orange-50 text-orange-600 rounded-2xl font-bold border border-orange-100">生成邀请链接</button>
             </div>
         </section>
-
+        <div id="matchModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-lg z-[60] flex flex-col items-center justify-center p-8">
+            <p class="text-orange-400 text-sm mb-2 animate-bounce">匹配成功！</p>
+            <h2 class="text-white text-xl font-bold mb-6">此时此刻，也有人陪你吃饭</h2>
+            <div class="bg-white p-3 rounded-[2.5rem] w-full max-w-xs shadow-2xl">
+                <img id="matchImage" src="" class="w-full h-72 object-cover rounded-[2rem] mb-4">
+                <p id="matchMood" class="text-center font-bold text-gray-800 mb-2"></p>
+                <p id="matchLocation" class="text-center text-xs text-gray-400"></p>
+            </div>
+            <button onclick="closeMatch()" class="mt-10 px-10 py-3 bg-white/20 text-white rounded-full border border-white/30">进入广场</button>
+        </div>
+        <div id="matchModal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-2xl z-[100] flex flex-col items-center justify-center p-8 transition-all">
+    
+            <div id="matchLoading" class="flex flex-col items-center justify-center">
+                <div class="relative w-24 h-24 mb-6">
+                    <div class="absolute inset-0 border-4 border-orange-500/20 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-t-orange-500 rounded-full animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center text-2xl">🔍</div>
+                </div>
+                <p class="text-orange-400 font-medium tracking-[0.2em] animate-pulse">正在寻找此时此刻的饭友...</p>
+                <p class="text-gray-500 text-[10px] mt-2">穿越山海，去遇见另一份烟火</p>
+            </div>
+        
+            <div id="matchContent" class="hidden relative w-full max-w-xs animate-in zoom-in duration-700">
+                <p class="text-orange-400 text-center text-sm font-bold mb-6 tracking-widest">✨ 遇见了！</p>
+                <div class="bg-white p-4 pb-10 rounded-[2.5rem] shadow-2xl rotate-2">
+                    <img id="matchImage" src="" class="w-full h-80 object-cover rounded-[1.5rem] mb-4 shadow-inner">
+                    <p id="matchMood" class="text-center text-xl font-bold text-gray-800"></p>
+                    <p id="matchLocation" class="text-center text-xs text-gray-400 mt-2"></p>
+                </div>
+                <button onclick="closeMatch()" class="w-full mt-10 py-4 bg-orange-500 text-white rounded-full font-bold shadow-lg active:scale-95 transition-all">
+                    去广场打个招呼
+                </button>
+            </div>
+        </div>
     </main>
 
     <nav class="bg-white/90 backdrop-blur-md border-t border-orange-50 p-4 flex justify-around items-center pb-10 z-40">
