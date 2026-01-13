@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>吃了吗 - 每一个饭点都值得温柔对待</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -56,6 +55,83 @@
         #matchModal {
             z-index: 100;
         }
+        
+        /* 8. 图片优化 */
+        img {
+            image-rendering: -webkit-optimize-contrast;
+        }
+        
+        /* 9. 加载状态动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* 10. 骨架屏效果 */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* 11. 空状态样式 */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #9ca3af;
+        }
+        
+        /* 12. 按钮禁用状态 */
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* 13. 安全区域适配（iPhone X等刘海屏） */
+        .safe-area-inset-bottom {
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+        }
+        
+        /* 14. 平滑滚动 */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* 15. 防止文本选择（移动端优化） */
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* 允许输入框选择文本 */
+        input, textarea {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
+        /* 16. 牵挂线柔和提醒边框 + 呼吸效果 */
+        .border-care-soft {
+            border-color: #FFB347;
+        }
+        @keyframes carePulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 179, 71, 0.25); }
+            50% { box-shadow: 0 0 0 6px rgba(255, 179, 71, 0.08); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 179, 71, 0.0); }
+        }
+        .animate-care-pulse {
+            animation: carePulse 2.4s ease-in-out infinite;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col justify-between font-sans overflow-hidden select-none">
@@ -87,12 +163,12 @@
 
         <canvas id="canvas" class="hidden"></canvas>
         <div id="photoPreview" class="hidden h-full flex flex-col items-center p-6 bg-[#FFF9F0] overflow-y-auto no-scrollbar">
-            <img id="photo" class="w-full rounded-[2rem] shadow-2xl border-4 border-white mb-4 max-h-[45vh] object-cover" />
+            <img id="photo" alt="预览照片" class="w-full rounded-[2rem] shadow-2xl border-4 border-white mb-4 max-h-[45vh] object-cover" />
             <div class="w-full px-2 mb-6">
                 <p class="text-[10px] text-gray-400 mb-3 ml-2 uppercase tracking-widest">此刻心情</p>
                 <div id="moodOptions" class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
                     <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="🏃 工作餐">🏃 工作餐</span>
-                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="🍚 慢慢吃">🛋️ 慢慢啃</span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="🛋️ 慢慢啃">🛋️ 慢慢啃</span>
                     <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="💻 加班中">💻 加班中</span>
                     <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="👨‍👩‍👧 陪家人">👨‍👩‍👧 陪家人</span>
                     <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="😋 味道赞">😋 味道赞</span>
@@ -105,9 +181,47 @@
         </div>
 
         <section id="squareView" class="hidden h-full overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
+            <div class="flex items-center gap-3 mb-4">
+                <button id="tabAll" class="flex-1 py-3 rounded-2xl bg-orange-500 text-white font-bold shadow-sm transition-all active:scale-95">众生相广场</button>
+                <button id="tabMine" class="flex-1 py-3 rounded-2xl bg-orange-50 text-orange-500 font-bold border border-orange-100 transition-all active:scale-95">我的瞬间</button>
+            </div>
+            <div class="flex items-center gap-3 mb-6">
+            </div>
             <h1 class="text-3xl font-bold text-gray-900 mb-2">此刻烟火</h1>
-            <p class="text-gray-400 text-sm mb-8 italic">“总有人在陪你吃饭”</p>
+            <p class="text-gray-400 text-sm mb-8 italic">"总有人在陪你吃饭"</p>
             <div id="feedContainer" class="flex flex-col gap-6"></div>
+            <div id="emptyState" class="hidden empty-state">
+                <div class="text-6xl mb-4">🍽️</div>
+                <p class="text-lg font-medium mb-2">还没有烟火</p>
+                <p class="text-sm">成为第一个分享的人吧！</p>
+            </div>
+            <div id="myEmptyState" class="hidden empty-state">
+                <div class="text-6xl mb-4">📸</div>
+                <p class="text-lg font-medium mb-2">这里空荡荡的</p>
+                <p class="text-sm">快去记录第一顿饭吧！</p>
+            </div>
+        </section>
+
+        <section id="careView" class="hidden h-full overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">牵挂线</h1>
+            <p class="text-gray-400 text-sm mb-6 italic">温柔看看他们有没有好好吃饭</p>
+        
+            <div class="flex gap-2 mb-6">
+                <button id="showMyCodeBtn" class="flex-1 py-3 bg-orange-50 text-orange-600 rounded-xl text-xs font-bold border border-orange-100">
+                    我的牵挂码
+                </button>
+                <button id="openFollowModalBtn" class="flex-1 py-3 bg-white text-gray-600 rounded-xl text-xs font-bold border border-gray-200 shadow-sm">
+                    + 建立牵挂线
+                </button>
+            </div>
+        
+            <div id="careList" class="flex flex-col gap-4"></div>
+        
+            <div id="careEmpty" class="hidden empty-state">
+                <div class="text-6xl mb-4">🤝</div>
+                <p class="text-lg font-medium mb-2">还没有牵挂的人</p>
+                <p class="text-sm">点击上方“建立牵挂线”输入牵挂码吧</p>
+            </div>
         </section>
 
         <section id="discoveryView" class="hidden h-full flex flex-col px-6 pt-4 bg-[#FFF9F0]">
@@ -121,28 +235,7 @@
                 <p id="healthTip" class="mt-6 text-sm text-gray-400 opacity-0 transition-opacity italic">建议吃点清淡的哦</p>
             </div>
         </section>
-
-        <section id="familyView" class="hidden h-full flex flex-col px-6 pt-4">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">家人牵挂</h1>
-            <div class="mt-10 p-8 bg-white rounded-[2rem] border border-orange-100 shadow-sm text-center">
-                <div class="text-4xl mb-4">🏠</div>
-                <h3 class="text-xl font-bold text-gray-800">邀请家人</h3>
-                <p class="text-gray-500 mt-2 text-sm leading-relaxed">绑定后，他们会准时收到你的用餐提醒。</p>
-                <button class="mt-8 w-full py-4 bg-orange-50 text-orange-600 rounded-2xl font-bold border border-orange-100">生成邀请链接</button>
-            </div>
-        </section>
-        <div id="matchModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-lg z-[60] flex flex-col items-center justify-center p-8">
-            <p class="text-orange-400 text-sm mb-2 animate-bounce">匹配成功！</p>
-            <h2 class="text-white text-xl font-bold mb-6">此时此刻，也有人陪你吃饭</h2>
-            <div class="bg-white p-3 rounded-[2.5rem] w-full max-w-xs shadow-2xl">
-                <img id="matchImage" src="" class="w-full h-72 object-cover rounded-[2rem] mb-4">
-                <p id="matchMood" class="text-center font-bold text-gray-800 mb-2"></p>
-                <p id="matchLocation" class="text-center text-xs text-gray-400"></p>
-            </div>
-            <button onclick="closeMatch()" class="mt-10 px-10 py-3 bg-white/20 text-white rounded-full border border-white/30">进入广场</button>
-        </div>
         <div id="matchModal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-2xl z-[100] flex flex-col items-center justify-center p-8 transition-all">
-    
             <div id="matchLoading" class="flex flex-col items-center justify-center">
                 <div class="relative w-24 h-24 mb-6">
                     <div class="absolute inset-0 border-4 border-orange-500/20 rounded-full"></div>
@@ -156,7 +249,7 @@
             <div id="matchContent" class="hidden relative w-full max-w-xs animate-in zoom-in duration-700">
                 <p class="text-orange-400 text-center text-sm font-bold mb-6 tracking-widest">✨ 遇见了！</p>
                 <div class="bg-white p-4 pb-10 rounded-[2.5rem] shadow-2xl rotate-2">
-                    <img id="matchImage" src="" class="w-full h-80 object-cover rounded-[1.5rem] mb-4 shadow-inner">
+                    <img id="matchImage" src="" alt="匹配的饭友照片" class="w-full h-80 object-cover rounded-[1.5rem] mb-4 shadow-inner">
                     <p id="matchMood" class="text-center text-xl font-bold text-gray-800"></p>
                     <p id="matchLocation" class="text-center text-xs text-gray-400 mt-2"></p>
                 </div>
@@ -165,21 +258,53 @@
                 </button>
             </div>
         </div>
+        
+        <!-- 牵挂码弹窗 -->
+        <div id="codeModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center px-6">
+            <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">我的牵挂码</h3>
+                    <button id="closeCodeModal" class="text-gray-400 text-xl">✕</button>
+                </div>
+                <p class="text-sm text-gray-500 mb-4">将此码发给父母或子女，他们就能看到你是否有按时吃饭。</p>
+                <div class="p-4 bg-orange-50 border border-orange-100 rounded-2xl mb-4">
+                    <p class="text-xs text-gray-500 mb-1">牵挂码</p>
+                    <div class="flex items-center justify-between gap-3">
+                        <code id="codeValue" class="text-sm font-mono text-orange-600 break-all">--</code>
+                        <button id="copyCode" class="px-3 py-2 bg-orange-500 text-white rounded-xl text-sm active:scale-95 transition-all">复制</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 绑定牵挂人弹窗 -->
+        <div id="followModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center px-6">
+            <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">我牵挂的人</h3>
+                    <button id="closeFollowModal" class="text-gray-400 text-xl">✕</button>
+                </div>
+                <p class="text-sm text-gray-500 mb-4">输入亲友的牵挂码，关注他们的用餐情况。</p>
+                <input id="followInput" type="text" placeholder="例如：user_123456789" class="w-full px-4 py-3 border border-gray-200 rounded-2xl mb-4 focus:outline-none focus:ring-2 focus:ring-orange-200" />
+                <button id="saveFollow" class="w-full py-3 bg-orange-500 text-white font-bold rounded-2xl active:scale-95 transition-all">保存</button>
+            </div>
+        </div>
     </main>
 
-    <nav class="bg-white/90 backdrop-blur-md border-t border-orange-50 p-4 flex justify-around items-center pb-10 z-40">
-        <div class="flex flex-col items-center gap-1 cursor-pointer transition-colors text-gray-400">
+    <nav class="bg-white/90 backdrop-blur-md border-t border-orange-50 p-4 flex justify-around items-center pb-10 z-40 safe-area-inset-bottom">
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all active:scale-95 text-gray-400" data-view="square">
             <span class="text-xl">🌍</span><span class="text-[10px]">广场</span>
         </div>
-        <div class="flex flex-col items-center gap-1 cursor-pointer transition-colors text-orange-500 font-bold">
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all active:scale-95 text-orange-500 font-bold" data-view="start">
             <span class="text-xl">📸</span><span class="text-[10px]">记录</span>
         </div>
-        <div class="flex flex-col items-center gap-1 cursor-pointer transition-colors text-gray-400">
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all active:scale-95 text-gray-400" data-view="discovery">
             <span class="text-xl">🎲</span><span class="text-[10px]">吃啥</span>
         </div>
-        <div class="flex flex-col items-center gap-1 cursor-pointer transition-colors text-gray-400">
-            <span class="text-xl">🏠</span><span class="text-[10px]">家人</span>
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all active:scale-95 text-gray-400" data-view="care">
+            <span class="text-xl">🤝</span><span class="text-[10px]">牵挂线</span>
         </div>
+
     </nav>
 
     <script src="app.js"></script>
