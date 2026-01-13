@@ -1,8 +1,44 @@
+// 获取或创建一个唯一的设备ID
+function getUserId() {
+    let userId = localStorage.getItem('dinner_user_id');
+    if (!userId) {
+        // 如果没有，就生成一个随机ID，比如 "user_8j2f9"
+        userId = 'user_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('dinner_user_id', userId);
+    }
+    return userId;
+}
+const MY_USER_ID = getUserId(); // 以后发布照片就带上这个 ID
+function getMealType() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 10) return "晨光早餐 ☕";
+    if (hour >= 10 && hour < 14) return "忙碌午餐 🍱";
+    if (hour >= 14 && hour < 17) return "悠哉午茶 🍵";
+    if (hour >= 17 && hour < 21) return "治愈晚餐 🍲";
+    return "深夜食堂 🌙";
+}
+// 1. 初始化 Supabase 客户端
 const SUPABASE_URL = 'https://qzlljyrtxcxwzwqacvpy.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BTWyerGQTZNktmx7wIROIg_wQGvFsxm'; // 建议后续改用 anon key
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 document.addEventListener('DOMContentLoaded', () => {
+    let selectedMood = ""; // 用来存储选中的心情
+
+// 给所有标签绑定点击事件
+document.querySelectorAll('.mood-tag').forEach(tag => {
+    tag.onclick = () => {
+        // 先重置所有标签样式
+        document.querySelectorAll('.mood-tag').forEach(t => {
+            t.classList.replace('bg-orange-500', 'bg-white');
+            t.classList.replace('text-white', 'text-gray-600');
+        });
+        // 高亮当前选中的
+        tag.classList.replace('bg-white', 'bg-orange-500');
+        tag.classList.replace('text-gray-600', 'text-white');
+        selectedMood = tag.getAttribute('data-mood');
+    };
+});
     // 页面元素定义
     const views = {
         start: document.getElementById('startView'),
@@ -59,33 +95,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         feedContainer.innerHTML = '';
-        data.forEach(post => {
-            const html = `
-                <div class="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border border-orange-50 mb-8 transition-all hover:shadow-md">
-                    <div class="relative">
+            data.forEach(post => {
+                // 1. 先检查本地存储，看看这个设备是否点过赞
+                const hasCheered = localStorage.getItem(`cheers_${post.id}`);
+                const hasComforted = localStorage.getItem(`comfort_${post.id}`);
+    
+                // 2. 根据是否点过，准备好 CSS 类名
+                // 如果点过了，就加上灰度、半透明、禁用点击的样式
+                const cheersClass = hasCheered ? 'opacity-50 grayscale pointer-events-none' : '';
+                const comfortClass = hasComforted ? 'opacity-50 grayscale pointer-events-none' : '';
+    
+                // 3. 构建 HTML (重点看按钮里的 ${post.cheers || 0})
+                const html = `
+                    <div class="bg-white p-4 rounded-[2.5rem] shadow-sm border border-orange-50 mb-8">
+                    <div class="relative rounded-[2rem] overflow-hidden mb-4 shadow-inner">
                         <img src="${post.image_url}" class="w-full h-80 object-cover">
-                        <div class="absolute bottom-4 right-4">
-                            <button onclick="handleCheers(${post.id}, this)" class="bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2 active:scale-90 transition-all border border-orange-100">
-                                <span class="text-xl">🍻</span>
-                                <span class="font-bold text-orange-600">${post.cheers || 0}</span>
+                        <div class="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full">
+                            <span class="text-white text-[10px] font-bold">${post.location || '美味瞬间'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="px-3">
+                        <div class="mb-3">
+                            <span class="text-lg font-bold text-gray-800">${post.content || '认真吃饭，保持热爱。'}</span>
+                        </div>
+    
+                        <div class="flex gap-3 mb-4">
+                            <button onclick="handleInteraction(${post.id}, 'cheers', this)" 
+                                    class="flex items-center gap-1.5 bg-orange-50 px-4 py-2 rounded-full border border-orange-100 active:scale-95 transition-all ${cheersClass}">
+                                <span class="text-lg">🍻</span>
+                                <span class="font-bold text-orange-600 text-sm">${post.cheers || 0}</span>
+                            </button>
+                            
+                            <button onclick="handleInteraction(${post.id}, 'comfort', this)" 
+                                    class="flex items-center gap-1.5 bg-blue-50 px-4 py-2 rounded-full border border-blue-100 active:scale-95 transition-all ${comfortClass}">
+                                <span class="text-lg">🖐️</span>
+                                <span class="font-bold text-blue-600 text-sm">${post.comfort || 0}</span>
                             </button>
                         </div>
-                    </div>
-                    <div class="p-6">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-lg">🍲</div>
-                            <div>
-                                <p class="font-bold text-gray-800 text-sm">温暖的饭友</p>
-                                <p class="text-[10px] text-gray-400">${formatTime(post.created_at)}</p>
-                            </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <div class="w-1 h-1 bg-orange-400 rounded-full"></div>
+                            <p class="text-[10px] text-gray-400 font-light">
+                                ${formatTime(post.created_at)} · 记录于此刻烟火
+                            </p>
                         </div>
-                        <p class="text-gray-600 text-sm leading-relaxed font-light">
-                            “在此刻，全世界有 1280 人和你一样，正在认真对待食物。”
-                        </p>
                     </div>
                 </div>`;
-            feedContainer.insertAdjacentHTML('beforeend', html);
-        });
+                
+                // 将生成的卡片放入容器
+                feedContainer.insertAdjacentHTML('beforeend', html);
+            });
     }
 
     // 时间格式化小工具
@@ -128,44 +188,61 @@ document.addEventListener('DOMContentLoaded', () => {
         switchView('preview');
     };
 
-// --- 联网发布逻辑 (修复版) ---
+// --- 联网发布逻辑 (完美修正版) ---
 document.getElementById('save').onclick = async () => {
     const btn = document.getElementById('save');
-    
-    // 1. 基础检查
+    // 1. 基础检查：照片必须存在
     if (!photo.src || photo.src.startsWith('data:image/gif')) {
         alert("照片好像没拍好，请重拍一下");
         return;
     }
 
+    // 2. 界面反馈：禁用按钮防止连点
     btn.disabled = true;
-    btn.innerText = "正在同步至云端...";
+    btn.innerText = "正在存档瞬间...";
+
+    // 3. 准备自动化数据
+    const mealType = getMealType(); // 获取饭点
 
     try {
-        // 2. 执行插入
-        // 这里的 image_url 对应你数据库里的列名
+        // 4. 执行插入 (注意这里加上了 user_id 和 .select())
         const { data, error } = await supabaseClient
             .from('posts')
             .insert([
-                { image_url: photo.src } 
-            ]);
+                { 
+                    image_url: photo.src,
+                    location: mealType, 
+                    content: selectedMood || "认真吃饭，保持热爱。",
+                    user_id: MY_USER_ID // 必须确保你在文件顶部定义了 MY_USER_ID
+                } 
+            ])
+            .select(); // 加上 select 才能拿到新数据的 ID 用于匹配
 
         if (error) {
-            // 如果报错，直接弹出错误原因
             console.error("数据库报错:", error);
-            alert("发布失败: " + error.message + "\n请检查数据库 image_url 是否为 text 类型。");
+            alert("发布失败: " + error.message);
             btn.disabled = false;
             btn.innerText = "重新尝试发布";
         } else {
-            // 3. 成功后的反馈
-            alert("发布成功！");
-            switchView('square'); // 自动跳到广场
-            fetchPosts();  // 刷新广场内容
+            // 5. 成功后的新流程：启动浪漫匹配
+            const myNewId = data ? data[0].id : null;
+            
+            // 如果你之前加了匹配动画，这里直接调用
+            if (typeof showRandomMatch === 'function') {
+                showRandomMatch(myNewId);
+            } else {
+                alert("瞬间已存档 ✨");
+                switchView('square'); 
+                fetchPosts();
+            }
+            
+            selectedMood = ""; // 重置心情
         }
     } catch (err) {
         console.error("代码执行异常:", err);
-        alert("发生了未知错误，请检查网络");
+        alert("发生了未知错误");
         btn.disabled = false;
+        btn.innerText = "重新尝试发布";
     }
 };
     document.getElementById('retake').onclick = () => captureBtn.click();
@@ -190,19 +267,124 @@ document.getElementById('save').onclick = async () => {
             }, 800);
         };
     }
-    // 全局函数，方便 HTML 里的 onclick 调用
-    window.handleCheers = async (postId, btnElement) => {
-        // 1. 前端即时反馈 (让用户感觉很快)
-        const countSpan = btnElement.querySelector('span:last-child');
-        let currentCount = parseInt(countSpan.innerText);
-        countSpan.innerText = currentCount + 1;
-        
-        // 2. 同步到云端数据库
-        const { error } = await supabaseClient.rpc('increment_cheers', { row_id: postId });
-        
-        if (error) {
-            // 如果云端失败，可以在这里回滚（目前为了爽快感先不回滚）
-            console.error('干杯失败:', error);
-        }
-    };
 });
+// --- 文件最末尾 ---
+// 统一处理：干杯 和 摸摸头 (全局函数)
+window.handleInteraction = async (postId, type, btnElement) => {
+    const storageKey = `${type}_${postId}`;
+    if (localStorage.getItem(storageKey)) return; 
+
+    // 1. 获取当前显示的数字
+    const countSpan = btnElement.querySelector('span:last-child');
+    let currentCount = parseInt(countSpan.innerText) || 0;
+    let newCount = currentCount + 1;
+
+    // 2. 立即更新前端界面 (不管数据库，先给用户反馈)
+    countSpan.innerText = newCount;
+    btnElement.classList.add('opacity-50', 'grayscale', 'pointer-events-none');
+    localStorage.setItem(storageKey, 'true');
+
+    // 3. 同步到数据库
+    try {
+        // 先获取最新的数据，确保我们不是在 NULL 上做加法
+        const { data: currentPost } = await supabaseClient
+            .from('posts')
+            .select(type)
+            .eq('id', postId)
+            .single();
+
+        // 如果数据库里是空的，dbCount 就设为 0
+        const dbCount = (currentPost && currentPost[type]) ? currentPost[type] : 0;
+        const finalCount = dbCount + 1;
+
+        const { error } = await supabaseClient
+            .from('posts')
+            .update({ [type]: finalCount })
+            .eq('id', postId);
+        
+        if (error) throw error;
+    } catch (err) {
+        console.error('更新失败:', err);
+        // 如果失败了，撤销本地状态，允许重试
+        localStorage.removeItem(storageKey);
+        btnElement.classList.remove('opacity-50', 'grayscale', 'pointer-events-none');
+        countSpan.innerText = currentCount;
+    }
+};
+async function showRandomMatch(excludeId) {
+    const modal = document.getElementById('matchModal');
+    const loading = document.getElementById('matchLoading');
+    const content = document.getElementById('matchContent');
+    
+    const matchImg = document.getElementById('matchImage');
+    const matchMood = document.getElementById('matchMood');
+    const matchLoc = document.getElementById('matchLocation');
+
+    // 1. 初始化状态：显示弹窗，展示动画，隐藏内容
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+
+    try {
+        // 2. 提前拉取数据（为了后续展示不卡顿）
+        const { data, error } = await supabaseClient
+            .from('posts')
+            .select('*')
+            .neq('id', excludeId)
+            .limit(30);
+
+        // 3. 人为制造“寻找中”的延迟 (1.5秒 - 2秒)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        if (!error && data && data.length > 0) {
+            const randomPost = data[Math.floor(Math.random() * data.length)];
+            
+            // 填充内容
+            matchImg.src = randomPost.image_url;
+            matchMood.innerText = randomPost.content || "认真吃饭";
+            matchLoc.innerText = `— 记录于 ${randomPost.location || '烟火世界'}`;
+            
+            // 4. 切换显示层
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        } else {
+            // 如果没有人，悄悄关闭
+            closeMatch();
+        }
+    } catch (err) {
+        console.error("匹配异常:", err);
+        closeMatch();
+    }
+}
+// --- 必须放在文件最底部，且确保是 window. 属性 ---
+
+window.closeMatch = () => {
+    // 1. 隐藏弹窗
+    const modal = document.getElementById('matchModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+
+    // 2. 切换到广场视图
+    // 这里的 switchView 必须是你在 DOMContentLoaded 内部定义的那个函数
+    // 如果无法直接调用，我们需要确保 switchView 也是全局的
+    if (typeof switchView === 'function') {
+        switchView('square');
+    } else {
+        // 如果 switchView 报错，尝试直接操作 DOM
+        document.querySelectorAll('main > div').forEach(v => v.classList.add('hidden'));
+        document.getElementById('squareView').classList.remove('hidden');
+        
+        // 更新导航栏颜色（可选）
+        const navItems = document.querySelectorAll('nav > div');
+        navItems.forEach((item, idx) => {
+            item.classList.toggle('text-orange-500', idx === 0);
+            item.classList.toggle('text-gray-400', idx !== 0);
+        });
+    }
+
+    // 3. 刷新广场数据
+    if (typeof fetchPosts === 'function') {
+        fetchPosts();
+    }
+};
