@@ -33,11 +33,11 @@ function saveFollowing(list) {
 
 function getMealType() {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 10) return "晨光早餐 ☕";
-    if (hour >= 10 && hour < 14) return "忙碌午餐 🍱";
-    if (hour >= 14 && hour < 17) return "悠哉午茶 🍵";
-    if (hour >= 17 && hour < 21) return "治愈晚餐 🍲";
-    return "深夜食堂 🌙";
+    if (hour >= 5 && hour < 10) return "晨光早餐";
+    if (hour >= 10 && hour < 14) return "忙碌午餐";
+    if (hour >= 14 && hour < 17) return "悠哉午茶";
+    if (hour >= 17 && hour < 21) return "治愈晚餐";
+    return "深夜食堂";
 }
 
 const SUPABASE_URL = 'https://qzlljyrtxcxwzwqacvpy.supabase.co';
@@ -70,17 +70,20 @@ window.switchView = function(viewName) {
     Object.values(allViews).forEach(v => { if (v) v.classList.add('hidden'); });
     if (allViews[viewName]) allViews[viewName].classList.remove('hidden');
 
+    // 标题现在作为视图的一部分，会随着视图的显示而显示，隐藏而隐藏
+    // 因此移除了原来的标题显示控制逻辑
+
     const nav = document.querySelector('nav');
     if (nav) {
         if (viewName === 'camera' || viewName === 'preview') nav.classList.add('hidden');
         else nav.classList.remove('hidden');
     }
     
-    const items = document.querySelectorAll('nav > div, nav .nav-item');
-    items.forEach((item) => {
+    const navItems = document.querySelectorAll('nav .nav-item');
+    navItems.forEach((item) => {
         const viewAttr = item.getAttribute('data-view');
-        // 这里简化了判断逻辑
         const isActive = (viewName === viewAttr);
+        item.classList.toggle('active', isActive);
         item.classList.toggle('text-orange-500', isActive);
         item.classList.toggle('font-bold', isActive);
         item.classList.toggle('text-gray-400', !isActive);
@@ -110,7 +113,7 @@ window.fetchPosts = async function(mode) {
     // 2. 显示加载状态
 container.innerHTML = `
 <div class="flex flex-col items-center justify-center py-20 gap-3">
-    <div class="text-2xl animate-bounce">🍲</div>
+    <i data-lucide="map-pin" class="w-16 h-16 text-orange-500 animate-bounce"></i>
     <div class="text-orange-400 font-medium italic animate-pulse">正在翻看大家的饭桌故事...</div>
 </div>
 `;
@@ -140,18 +143,19 @@ container.innerHTML = `
             const hasComforted = localStorage.getItem(`comfort_${post.id}`);
             
             const cardHtml = `
-                <div class="bg-white rounded-[2rem] p-3 shadow-md border-b-4 border-r-4 border-orange-100 mb-6 transition-all active:scale-[0.98] animate-fade-in mx-1" style="animation-delay: ${index * 0.1}s">
-                    <div class="relative rounded-[1.5rem] overflow-hidden bg-orange-50/50 max-h-72 shadow-inner border border-orange-50/50">
-                        <img src="${post.image_url}" class="w-full h-full object-contain mx-auto" style="max-height: 280px;" loading="lazy">
+                <div class="card p-6 mb-6 animate-fade-in mx-auto max-w-2xl" style="animation-delay: ${index * 0.1}s">
+                    <div class="relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-orange-50/98 to-yellow-50/98 aspect-square border border-orange-100/60 max-w-md mx-auto">
+                        <div class="absolute inset-0 bg-[#FFF8F0] opacity-80"></div>
+                        <img src="${post.image_url}" class="w-full h-full object-contain mx-auto relative z-10 p-4" style="max-height: calc(100% - 2rem);" loading="lazy">
                         
-                        <div class="absolute bottom-3 left-3 bg-white/80 backdrop-blur-md px-2.5 py-1 rounded-lg shadow-sm border border-white/50">
+                        <div class="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-sm border border-white/80 z-20">
                             <span class="text-[10px] font-bold text-orange-600 flex items-center gap-1">
-                                📍 ${post.location || '美味瞬间'}
+                                <i data-lucide="map-pin" class="w-3 h-3"></i> ${post.location || '美味瞬间'}
                             </span>
                         </div>
                     </div>
 
-                    <div class="px-2 pt-3 pb-1">
+                    <div class="pt-4 px-1">
                         <p class="text-gray-700 text-sm font-medium leading-relaxed mb-3">
                             ${post.content || '认真吃饭，保持热爱。'}
                         </p>
@@ -159,13 +163,13 @@ container.innerHTML = `
                         <div class="flex items-center justify-between">
                             <div class="flex gap-2">
                                 <button onclick="handleInteraction('${post.id}', 'cheers', this)" 
-                                        class="flex items-center gap-1 bg-orange-50/50 px-3 py-1.5 rounded-xl border border-orange-100 transition-all active:scale-90 ${hasCheered ? 'opacity-50 grayscale pointer-events-none' : ''}">
-                                    <span class="text-sm">🍻</span>
+                                        class="flex items-center gap-1 bg-orange-50 px-3 py-1.5 rounded-xl border border-orange-100 transition-all btn-q弹 ${hasCheered ? 'opacity-50 grayscale pointer-events-none' : ''}">
+                                    <i data-lucide="beer" class="w-4 h-4"></i>
                                     <span class="font-bold text-orange-600 text-[11px]">${post.cheers || 0}</span>
                                 </button>
                                 <button onclick="handleInteraction('${post.id}', 'comfort', this)" 
-                                        class="flex items-center gap-1 bg-blue-50/50 px-3 py-1.5 rounded-xl border border-blue-100 transition-all active:scale-90 ${hasComforted ? 'opacity-50 grayscale pointer-events-none' : ''}">
-                                    <span class="text-sm">🖐️</span>
+                                        class="flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 transition-all btn-q弹 ${hasComforted ? 'opacity-50 grayscale pointer-events-none' : ''}">
+                                    <i data-lucide="hand" class="w-4 h-4"></i>
                                     <span class="font-bold text-blue-600 text-[11px]">${post.comfort || 0}</span>
                                 </button>
                             </div>
@@ -485,9 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (!foodResult || !healthTip) return;
             
-            // 旋转 + 跑马灯，带减速效果
-            foodResult.style.transition = 'transform 0.1s';
-            let rotation = 0;
+            // 跑马灯效果，带减速效果
             const startTime = Date.now();
             const spinDuration = 1600; // 总滚动时间
             
@@ -498,10 +500,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 随机显示一个候选项
                 const randomPick = foods[Math.floor(Math.random() * foods.length)];
                 foodResult.innerText = randomPick;
-                
-                // 旋转动效
-                rotation += 36;
-                foodResult.style.transform = `rotate(${rotation}deg)`;
                 
                 // 依据剩余时间拉长间隔，实现减速
                 const progress = elapsed / spinDuration;
@@ -515,9 +513,6 @@ document.addEventListener('DOMContentLoaded', () => {
             tick();
             
             setTimeout(() => {
-                foodResult.style.transform = 'rotate(0deg)';
-                foodResult.style.transition = 'transform 0.3s';
-                
                 const result = foods[Math.floor(Math.random() * foods.length)];
                 foodResult.innerText = result;
                 spinBtn.disabled = false;
