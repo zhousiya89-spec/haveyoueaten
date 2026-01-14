@@ -6,7 +6,29 @@
     <title>吃了吗 - 每一个饭点都值得温柔对待</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
+        /* 导入iOS风格字体 */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        /* 2. 全局样式 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+        /* 自定义SVG图标 */
+        .icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        .icon-lg {
+            width: 32px;
+            height: 32px;
+        }
+        .icon-xl {
+            width: 40px;
+            height: 40px;
+        }
         /* 1. 全局与背景设置 */
         body { 
             background-color: #FFF9F0; 
@@ -29,16 +51,52 @@
     
         /* 3. 拍照按钮与反馈 */
         .shutter-btn { 
-            background-color: #FF8A5B; 
-            transition: transform 0.1s ease;
-        }
-        .shutter-btn:active { 
-            transform: scale(0.9); 
+            background-color: #FF9500; 
         }
     
         /* 4. 隐藏滚动条但保留功能 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 5. 卡片设计：超大圆角和微质感 */
+        .card {
+            background-color: white;
+            border-radius: 32px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 6. 按钮Q弹效果 */
+        .btn-q弹 {
+            transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .btn-q弹:active {
+            transform: scale(0.95);
+        }
+        
+        /* 7. 图标容器动画 */
+        .icon-container {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .icon-container:active {
+            transform: scale(0.95) translateY(0);
+        }
+        
+        /* 8. 导航项激活状态 */
+        .nav-item.active .icon-container {
+            background-color: rgba(255, 149, 0, 0.15);
+        }
+        
+        .nav-item.active {
+            color: #FF9500;
+            font-weight: bold;
+        }
     
         /* 5. 视图容器适配 */
         main > div {
@@ -135,18 +193,19 @@
     </style>
 </head>
 <body class="h-screen flex flex-col justify-between font-sans overflow-hidden select-none">
+    <!-- SVG图标库 -->
 
-    <header id="appHeader" class="p-8 text-center mt-12 transition-all">
-        <h1 class="text-5xl font-bold text-gray-900 tracking-tighter mb-4">吃了吗</h1>
-        <p class="text-lg text-gray-500 leading-relaxed font-light">每一个平凡的饭点，<br>都值得被温柔对待。</p>
-    </header>
 
-    <main class="flex-1 relative overflow-hidden">
+    <main class="flex-1 relative overflow-y-auto">
         
         <div id="startView" class="h-full flex flex-col justify-center items-center">
+            <header id="startHeader" class="p-8 text-center mt-12 transition-all">
+                <h1 class="text-5xl font-bold text-gray-900 tracking-tighter mb-4">吃了吗</h1>
+                <p class="text-lg text-gray-500 leading-relaxed font-light">每一个平凡的饭点，<br>都值得被温柔对待。</p>
+            </header>
             <div class="relative">
                 <div class="absolute inset-0 bg-orange-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
-                <button id="captureBtn" class="shutter-btn relative w-52 h-52 rounded-full flex flex-col justify-center items-center shadow-2xl border-[12px] border-white transition-all">
+                <button id="captureBtn" class="shutter-btn relative w-52 h-52 rounded-full flex flex-col justify-center items-center shadow-2xl border-[12px] border-white/90 transition-all btn-q弹">
                     <span class="text-white text-3xl font-bold tracking-widest">吃了吗</span>
                     <span class="text-white/80 text-xs mt-2 font-light">记录生活温度</span>
                 </button>
@@ -167,23 +226,37 @@
             <div class="w-full px-2 mb-6">
                 <p class="text-[10px] text-gray-400 mb-3 ml-2 uppercase tracking-widest">此刻心情</p>
                 <div id="moodOptions" class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="🏃 工作餐">🏃 工作餐</span>
-                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="🛋️ 慢慢啃">🛋️ 慢慢啃</span>
-                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="💻 加班中">💻 加班中</span>
-                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="👨‍👩‍👧 陪家人">👨‍👩‍👧 陪家人</span>
-                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600" data-mood="😋 味道赞">😋 味道赞</span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600 flex items-center gap-1" data-mood="🏃 工作餐">
+                        <i data-lucide="run" class="w-4 h-4"></i> 工作餐
+                    </span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600 flex items-center gap-1" data-mood="🛋️ 慢慢啃">
+                        <i data-lucide="sofa" class="w-4 h-4"></i> 慢慢啃
+                    </span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600 flex items-center gap-1" data-mood="💻 加班中">
+                        <i data-lucide="laptop" class="w-4 h-4"></i> 加班中
+                    </span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600 flex items-center gap-1" data-mood="👨‍👩‍👧 陪家人">
+                        <i data-lucide="users" class="w-4 h-4"></i> 陪家人
+                    </span>
+                    <span class="mood-tag px-4 py-2 bg-white rounded-full text-xs border border-orange-100 whitespace-nowrap cursor-pointer transition-all text-gray-600 flex items-center gap-1" data-mood="😋 味道赞">
+                        <i data-lucide="smile" class="w-4 h-4"></i> 味道赞
+                    </span>
                 </div>
             </div>
             <div class="flex gap-4 w-full">
-                <button id="retake" class="flex-1 py-4 bg-gray-200 rounded-2xl font-bold text-gray-500">重拍</button>
-                <button id="save" class="flex-[2] py-4 bg-orange-500 rounded-2xl font-bold text-white shadow-lg">发布烟火</button>
+                <button id="retake" class="flex-1 py-4 bg-gray-200 rounded-2xl font-bold text-gray-500 btn-q弹">重拍</button>
+                <button id="save" class="flex-[2] py-4 bg-orange-500 rounded-2xl font-bold text-white shadow-lg btn-q弹">发布烟火</button>
             </div>
         </div>
 
         <section id="squareView" class="hidden h-full overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
+            <header id="squareHeader" class="p-8 text-center mt-12 transition-all">
+                <h1 class="text-5xl font-bold text-gray-900 tracking-tighter mb-4">吃了吗</h1>
+                <p class="text-lg text-gray-500 leading-relaxed font-light">每一个平凡的饭点，<br>都值得被温柔对待。</p>
+            </header>
             <div class="flex items-center gap-3 mb-4">
-                <button id="tabAll" class="flex-1 py-3 rounded-2xl bg-orange-500 text-white font-bold shadow-sm transition-all active:scale-95">众生相广场</button>
-                <button id="tabMine" class="flex-1 py-3 rounded-2xl bg-orange-50 text-orange-500 font-bold border border-orange-100 transition-all active:scale-95">我的瞬间</button>
+                <button id="tabAll" class="flex-1 py-3 rounded-2xl bg-orange-500 text-white font-bold shadow-sm btn-q弹">众生相广场</button>
+                <button id="tabMine" class="flex-1 py-3 rounded-2xl bg-orange-50 text-orange-500 font-bold border border-orange-100 btn-q弹">我的瞬间</button>
             </div>
             <div class="flex items-center gap-3 mb-6">
             </div>
@@ -191,26 +264,26 @@
             <p class="text-gray-400 text-sm mb-8 italic">"总有人在陪你吃饭"</p>
             <div id="feedContainer" class="flex flex-col gap-6"></div>
             <div id="emptyState" class="hidden empty-state">
-                <div class="text-6xl mb-4">🍽️</div>
+                <i data-lucide="map-pin" class="w-16 h-16 text-orange-500 mb-4"></i>
                 <p class="text-lg font-medium mb-2">还没有烟火</p>
                 <p class="text-sm">成为第一个分享的人吧！</p>
             </div>
             <div id="myEmptyState" class="hidden empty-state">
-                <div class="text-6xl mb-4">📸</div>
+                <i data-lucide="camera" class="w-16 h-16 text-orange-500 mb-4"></i>
                 <p class="text-lg font-medium mb-2">这里空荡荡的</p>
                 <p class="text-sm">快去记录第一顿饭吧！</p>
             </div>
         </section>
 
         <section id="careView" class="hidden h-full overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">牵挂线</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">我牵挂的人</h1>
             <p class="text-gray-400 text-sm mb-6 italic">温柔看看他们有没有好好吃饭</p>
         
             <div class="flex gap-2 mb-6">
-                <button id="showMyCodeBtn" class="flex-1 py-3 bg-orange-50 text-orange-600 rounded-xl text-xs font-bold border border-orange-100">
+                <button id="showMyCodeBtn" class="flex-1 py-3 bg-orange-50 text-orange-600 rounded-xl text-xs font-bold border border-orange-100 btn-q弹">
                     我的牵挂码
                 </button>
-                <button id="openFollowModalBtn" class="flex-1 py-3 bg-white text-gray-600 rounded-xl text-xs font-bold border border-gray-200 shadow-sm">
+                <button id="openFollowModalBtn" class="flex-1 py-3 bg-white text-gray-600 rounded-xl text-xs font-bold border border-gray-200 shadow-sm btn-q弹">
                     + 建立牵挂线
                 </button>
             </div>
@@ -218,20 +291,20 @@
             <div id="careList" class="flex flex-col gap-4"></div>
         
             <div id="careEmpty" class="hidden empty-state">
-                <div class="text-6xl mb-4">🤝</div>
+                <i data-lucide="heart" class="w-16 h-16 text-orange-500 mb-4"></i>
                 <p class="text-lg font-medium mb-2">还没有牵挂的人</p>
                 <p class="text-sm">点击上方“建立牵挂线”输入牵挂码吧</p>
             </div>
         </section>
 
-        <section id="discoveryView" class="hidden h-full flex flex-col px-6 pt-4 bg-[#FFF9F0]">
+        <section id="discoveryView" class="hidden min-h-screen flex flex-col px-6 pt-4 pb-32 bg-[#FFF9F0] overflow-y-auto">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">今天吃啥</h1>
             <p class="text-gray-400 text-sm mb-12">纠结结束，交给命运</p>
             <div class="flex-1 flex flex-col justify-center items-center pb-20">
                 <div class="w-64 h-64 bg-white rounded-full shadow-xl border-[10px] border-white flex items-center justify-center relative">
                     <div id="foodResult" class="text-2xl font-bold text-orange-600 px-4 text-center">？</div>
                 </div>
-                <button id="spinBtn" class="mt-12 px-12 py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">开启盲盒</button>
+                <button id="spinBtn" class="mt-12 px-12 py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-lg btn-q弹 z-10">开启盲盒</button>
                 <p id="healthTip" class="mt-6 text-sm text-gray-400 opacity-0 transition-opacity italic">建议吃点清淡的哦</p>
             </div>
         </section>
@@ -240,20 +313,20 @@
                 <div class="relative w-24 h-24 mb-6">
                     <div class="absolute inset-0 border-4 border-orange-500/20 rounded-full"></div>
                     <div class="absolute inset-0 border-4 border-t-orange-500 rounded-full animate-spin"></div>
-                    <div class="absolute inset-0 flex items-center justify-center text-2xl">🔍</div>
+                    <i data-lucide="map-pin" class="w-12 h-12 text-orange-500 absolute inset-0 flex items-center justify-center"></i>
                 </div>
                 <p class="text-orange-400 font-medium tracking-[0.2em] animate-pulse">正在寻找此时此刻的饭友...</p>
                 <p class="text-gray-500 text-[10px] mt-2">穿越山海，去遇见另一份烟火</p>
             </div>
         
             <div id="matchContent" class="hidden relative w-full max-w-xs animate-in zoom-in duration-700">
-                <p class="text-orange-400 text-center text-sm font-bold mb-6 tracking-widest">✨ 遇见了！</p>
+                <p class="text-orange-400 text-center text-sm font-bold mb-6 tracking-widest">🎉 遇见了！</p>
                 <div class="bg-white p-4 pb-10 rounded-[2.5rem] shadow-2xl rotate-2">
                     <img id="matchImage" src="" alt="匹配的饭友照片" class="w-full h-80 object-cover rounded-[1.5rem] mb-4 shadow-inner">
                     <p id="matchMood" class="text-center text-xl font-bold text-gray-800"></p>
                     <p id="matchLocation" class="text-center text-xs text-gray-400 mt-2"></p>
                 </div>
-                <button onclick="closeMatch()" class="w-full mt-10 py-4 bg-orange-500 text-white rounded-full font-bold shadow-lg active:scale-95 transition-all">
+                <button onclick="closeMatch()" class="w-full mt-10 py-4 bg-orange-500 text-white rounded-full font-bold shadow-lg btn-q弹">
                     去广场打个招呼
                 </button>
             </div>
@@ -271,7 +344,7 @@
                     <p class="text-xs text-gray-500 mb-1">牵挂码</p>
                     <div class="flex items-center justify-between gap-3">
                         <code id="codeValue" class="text-sm font-mono text-orange-600 break-all">--</code>
-                        <button id="copyCode" class="px-3 py-2 bg-orange-500 text-white rounded-xl text-sm active:scale-95 transition-all">复制</button>
+                        <button id="copyCode" class="px-3 py-2 bg-orange-500 text-white rounded-xl text-sm btn-q弹">复制</button>
                     </div>
                 </div>
             </div>
@@ -286,26 +359,46 @@
                 </div>
                 <p class="text-sm text-gray-500 mb-4">输入亲友的牵挂码，关注他们的用餐情况。</p>
                 <input id="followInput" type="text" placeholder="例如：user_123456789" class="w-full px-4 py-3 border border-gray-200 rounded-2xl mb-4 focus:outline-none focus:ring-2 focus:ring-orange-200" />
-                <button id="saveFollow" class="w-full py-3 bg-orange-500 text-white font-bold rounded-2xl active:scale-95 transition-all">保存</button>
+                <button id="saveFollow" class="w-full py-3 bg-orange-500 text-white font-bold rounded-2xl btn-q弹">保存</button>
             </div>
         </div>
     </main>
 
     <nav class="bg-white/90 backdrop-blur-md border-t border-orange-50 p-4 flex justify-around items-center pb-10 z-40 safe-area-inset-bottom">
-        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all active:scale-95 text-gray-400" data-view="square">
-            <span class="text-xl">🌍</span><span class="text-[10px]">广场</span>
+        <!-- 广场模块图标 -->
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-gray-400" data-view="square">
+            <div class="icon-container relative w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:translate-y-[-5px] duration-300" style="box-shadow: 0 10px 20px -5px rgba(255, 149, 0, 0.1), 0 5px 10px -5px rgba(255, 149, 0, 0.05);">
+                <span class="text-2xl">📍</span>
+                <div class="absolute top-2 right-2 w-2 h-2 bg-orange-300 rounded-full opacity-10"></div>
+            </div>
+            <span class="text-[10px]">广场</span>
         </div>
-        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all active:scale-95 text-orange-500 font-bold" data-view="start">
-            <span class="text-xl">📸</span><span class="text-[10px]">记录</span>
+        <!-- 记录模块图标 -->
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-orange-500 font-bold" data-view="start">
+            <div class="icon-container relative w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:translate-y-[-5px] duration-300" style="box-shadow: 0 10px 20px -5px rgba(255, 149, 0, 0.15), 0 5px 10px -5px rgba(255, 149, 0, 0.08);">
+                <span class="text-2xl">📸</span>
+                <div class="absolute top-2 right-2 w-2 h-2 bg-orange-400 rounded-full opacity-10"></div>
+            </div>
+            <span class="text-[10px]">记录</span>
         </div>
-        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all active:scale-95 text-gray-400" data-view="discovery">
-            <span class="text-xl">🎲</span><span class="text-[10px]">吃啥</span>
+        <!-- 吃啥模块图标 -->
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-gray-400" data-view="discovery">
+            <div class="icon-container relative w-16 h-16 rounded-2xl bg-yellow-50 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:translate-y-[-5px] duration-300" style="box-shadow: 0 10px 20px -5px rgba(250, 204, 21, 0.1), 0 5px 10px -5px rgba(250, 204, 21, 0.05);">
+                <span class="text-2xl">🎲</span>
+                <div class="absolute top-2 right-2 w-2 h-2 bg-yellow-300 rounded-full opacity-10"></div>
+            </div>
+            <span class="text-[10px]">吃啥</span>
         </div>
-        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all active:scale-95 text-gray-400" data-view="care">
-            <span class="text-xl">🤝</span><span class="text-[10px]">牵挂线</span>
+        <!-- 牵挂线模块图标 -->
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-gray-400" data-view="care">
+            <div class="icon-container relative w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:translate-y-[-5px] duration-300" style="box-shadow: 0 10px 20px -5px rgba(239, 68, 68, 0.1), 0 5px 10px -5px rgba(239, 68, 68, 0.05);">
+                <span class="text-2xl">❤️</span>
+                <div class="absolute top-2 right-2 w-2 h-2 bg-red-300 rounded-full opacity-10"></div>
+            </div>
+            <span class="text-[10px]">牵挂线</span>
         </div>
-
     </nav>
+
 
     <script src="app.js"></script>
 </body>
