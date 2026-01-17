@@ -6,6 +6,8 @@
     <title>吃了吗 - 每一个饭点都值得温柔对待</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.365.0/lucide.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.365.0/lucide.min.js"></script>
 
     <style>
         /* 导入iOS风格字体 */
@@ -58,8 +60,13 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
+        /* 强制修复的视图显示规则 */
+        .view-section { display: none; } #start { display: flex; }
+        
         /* 5. 卡片设计：超大圆角和微质感 */
         .card {
+            position: relative; /* 新增：作为定位基准 */
+            overflow: visible;  /* 新增：允许礼物贴纸超出一点点 */
             background-color: white;
             border-radius: 32px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
@@ -178,6 +185,19 @@
             user-select: text;
         }
 
+        /* 16. 帖子卡片样式 */
+        .post-card {
+            position: relative;
+        }
+
+        /* 17. 礼物贴纸样式 */
+        .gift-sticker {
+            position: absolute;
+            width: 45px;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
         /* 16. 牵挂线柔和提醒边框 + 呼吸效果 */
         .border-care-soft {
             border-color: #FFB347;
@@ -190,38 +210,287 @@
         .animate-care-pulse {
             animation: carePulse 2.4s ease-in-out infinite;
         }
+
+        /* --- 双击光晕与呼吸特效 --- */
+
+        /* 1. 光晕粒子（双击时产生） */
+        .orange-halo {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, rgba(255, 165, 0, 0.9) 0%, rgba(255, 140, 0, 0.4) 60%, transparent 100%);
+            border-radius: 50%;
+            pointer-events: none; /* 确保不阻挡后续点击 */
+            transform: translate(-50%, -50%) scale(0);
+            backdrop-filter: blur(2px); /* 毛玻璃柔焦感 */
+            mix-blend-mode: screen; /* 让光感更通透 */
+            z-index: 50;
+            animation: halo-expand 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes halo-expand {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(8); opacity: 0; }
+        }
+
+        /* 2. 照片容器的呼吸光芒（根据点赞数变化） */
+        .photo-glow {
+            transition: box-shadow 0.5s ease, border-color 0.5s ease;
+        }
+
+        /* 呼吸动画关键帧 */
+        @keyframes warm-breathe {
+            0% { box-shadow: 0 0 10px rgba(255, 165, 0, var(--glow-opacity)); }
+            50% { box-shadow: 0 0 25px rgba(255, 165, 0, var(--glow-opacity) + 0.2); }
+            100% { box-shadow: 0 0 10px rgba(255, 165, 0, var(--glow-opacity)); }
+        }
+
+        /* --- 礼物系统特效 --- */
+
+        /* 1. 工具栏图标浮动呼吸 */
+        @keyframes float-y {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-float-slow { animation: float-y 3s ease-in-out infinite; }
+        .animate-float-medium { animation: float-y 2.5s ease-in-out infinite; }
+        .animate-float-fast { animation: float-y 2s ease-in-out infinite; }
+
+        /* 2. 礼物落地时的果冻Q弹动画 */
+        @keyframes jelly-bounce {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            40% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            60% { transform: translate(-50%, -50%) scale(0.95); }
+            80% { transform: translate(-50%, -50%) scale(1.02); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+        }
+
+        .gift-sticker {
+            position: absolute;
+            width: 40px; /* 贴纸尺寸 */
+            height: 40px;
+            pointer-events: none; /* 让点击穿透，不影响双击点赞 */
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            animation: jelly-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            z-index: 20; /* 确保在照片之上 */
+        }
+
+        /* 3. 拖拽时的替身样式 */
+        .dragging-ghost {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.8;
+            transform: scale(1.2);
+        }
+
+        /* --- 递纸条核心特效 (覆盖旧样式) --- */ 
+
+        /* 1. 手绘风纸条 */ 
+        .note-paper-visual { 
+            position: fixed; 
+            width: 100px; 
+            height: 70px; 
+            background: #FFFBE6; /* 奶油黄 */ 
+            color: #2c3e50;      /* 钢笔蓝黑 */ 
+            /* 关键：不规则圆角模拟手绘纸片感 */ 
+            border-radius: 2px 255px 5px 25px / 255px 5px 225px 2px; 
+            box-shadow: 2px 5px 15px rgba(0,0,0,0.1); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: "KaiTi", "STKaiti", "Brush Script MT", cursive; /* 手写字体兜底 */ 
+            font-size: 16px; 
+            font-weight: bold; 
+            z-index: 9999; 
+            pointer-events: none; 
+            transform-origin: center center; 
+            /* 初始稍微倾斜 */ 
+            transform: rotate(-5deg); 
+            border: 1px solid rgba(0,0,0,0.05); 
+        } 
+
+        /* 2. 飞行过程中的晃动动画 */ 
+        @keyframes paper-flutter { 
+            0% { transform: rotate(-5deg) translateY(0); } 
+            25% { transform: rotate(5deg) translateY(-10px); } 
+            50% { transform: rotate(-5deg) translateY(0); } 
+            75% { transform: rotate(5deg) translateY(10px); } 
+            100% { transform: rotate(-5deg) translateY(0); } 
+        } 
+
+        /* 3. 落地后的气泡 */ 
+        .note-bubble-landed { 
+            position: absolute; 
+            right: -5px; 
+            top: -5px; 
+            width: 24px; 
+            height: 24px; 
+            background: #FF6B6B; 
+            border-radius: 50% 50% 5px 50%; 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 12px; 
+            box-shadow: 0 2px 5px rgba(255, 107, 107, 0.4); 
+            animation: bubble-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+        } 
+
+        @keyframes bubble-pop { 
+            0% { transform: scale(0); opacity: 0; } 
+            100% { transform: scale(1); opacity: 1; } 
+        } 
+
+        /* 4. 爱心粒子拖尾 */ 
+        .heart-trail { 
+            position: fixed; 
+            font-size: 12px; 
+            color: #FFB6C1; 
+            pointer-events: none; 
+            z-index: 9998; 
+            animation: heart-fade 0.8s ease-out forwards; 
+        } 
+
+        @keyframes heart-fade { 
+            0% { transform: scale(1) translate(0, 0); opacity: 1; } 
+            100% { transform: scale(0.5) translate(-10px, 20px); opacity: 0; } 
+        } 
+
+        /* 5. 顶部全局通知 */ 
+        .global-note-toast { 
+            position: fixed; 
+            top: -100px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(10px); 
+            padding: 12px 24px; 
+            border-radius: 30px; 
+            box-shadow: 0 10px 40px rgba(255, 149, 0, 0.2); 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            z-index: 10000; 
+            transition: top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); 
+            border: 1px solid rgba(255, 240, 230, 0.8); 
+            width: 90%; 
+            max-width: 400px; 
+        } 
+        .global-note-toast.show { 
+            top: 20px; 
+        }
+
+        /* --- 递纸条核心特效 (覆盖旧样式) --- */
+
+        /* 1. 手绘风纸条 */
+        .note-paper-visual { 
+            position: fixed; 
+            width: 100px; 
+            height: 70px; 
+            background: #FFFBE6; /* 奶油黄 */ 
+            color: #2c3e50;      /* 钢笔蓝黑 */ 
+            /* 关键：不规则圆角模拟手绘纸片感 */ 
+            border-radius: 2px 255px 5px 25px / 255px 5px 225px 2px; 
+            box-shadow: 2px 5px 15px rgba(0, 0, 0, 0.1); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: "KaiTi", "STKaiti", "Brush Script MT", cursive; /* 手写字体兜底 */ 
+            font-size: 18px; 
+            font-weight: bold; 
+            z-index: 9999; 
+            pointer-events: none; 
+            transform-origin: center center; 
+            /* 初始稍微倾斜 */ 
+            transform: rotate(-5deg); 
+            border: 1px solid rgba(0, 0, 0, 0.05); 
+        } 
+
+        /* 2. 落地后的气泡 */
+        .note-bubble-landed { 
+            position: absolute; 
+            right: -5px; 
+            top: -5px; 
+            width: 24px; 
+            height: 24px; 
+            background: #FF6B6B; 
+            border-radius: 50% 50% 5px 50%; 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 12px; 
+            box-shadow: 0 2px 5px rgba(255, 107, 107, 0.4); 
+            animation: bubble-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            z-index: 20; 
+        } 
+
+        @keyframes bubble-pop { 
+            0% { transform: scale(0); opacity: 0; } 
+            100% { transform: scale(1); opacity: 1; } 
+        } 
+
+        /* 3. 爱心粒子拖尾 */
+        .heart-trail { 
+            position: fixed; 
+            font-size: 12px; 
+            color: #FFB6C1; 
+            pointer-events: none; 
+            z-index: 9998; 
+            animation: heart-fade 0.8s ease-out forwards; 
+        } 
+
+        @keyframes heart-fade { 
+            0% { transform: scale(1) translate(0, 0); opacity: 1; } 
+            100% { transform: scale(0.5) translate(-10px, 20px); opacity: 0; } 
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col justify-between font-sans overflow-hidden select-none">
     <!-- SVG图标库 -->
 
 
-    <main class="flex-1 relative overflow-y-auto">
+    <main class="flex-1 relative overflow-hidden">
+        <!-- 礼物投喂工具栏 -->
+        <div id="giftToolbar" class="fixed right-4 top-1/2 transform -translate-y-1/2 bg-white/30 backdrop-blur-md border border-white/40 rounded-full shadow-lg p-2 flex flex-col gap-4 z-40 transition-all duration-300 hidden">
+            <div class="gift-icon relative w-12 h-12 cursor-pointer transition-transform hover:scale-110 active:scale-95" data-gift="bubble-tea">
+                <img src="assets/bubble-tea.png" class="w-full h-full object-contain drop-shadow-md animate-float-slow">
+            </div>
+            <div class="gift-icon relative w-12 h-12 cursor-pointer transition-transform hover:scale-110 active:scale-95" data-gift="wooden-spoon">
+                <img src="assets/wooden-spoon.png" class="w-full h-full object-contain drop-shadow-md animate-float-medium">
+            </div>
+            <div class="gift-icon relative w-12 h-12 cursor-pointer transition-transform hover:scale-110 active:scale-95" data-gift="chopsticks">
+                <img src="assets/chopsticks.png" class="w-full h-full object-contain drop-shadow-md animate-float-fast">
+            </div>
+        </div>
         
-        <div id="startView" class="h-full flex flex-col justify-center items-center">
+        <div id="start" class="view-section h-full w-full flex flex-col justify-center items-center">
             <header id="startHeader" class="p-8 text-center mt-12 transition-all">
                 <h1 class="text-5xl font-bold text-gray-900 tracking-tighter mb-4">吃了吗</h1>
                 <p class="text-lg text-gray-500 leading-relaxed font-light">每一个平凡的饭点，<br>都值得被温柔对待。</p>
             </header>
             <div class="relative">
                 <div class="absolute inset-0 bg-orange-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
-                <button id="captureBtn" class="shutter-btn relative w-52 h-52 rounded-full flex flex-col justify-center items-center shadow-2xl border-[12px] border-white/90 transition-all btn-q弹">
+                <button id="captureBtn" class="shutter-btn relative w-52 h-52 rounded-full flex flex-col justify-center items-center shadow-2xl border-[12px] border-white/90 transition-all btn-q弹" onclick="window.openPublishModal()">
                     <span class="text-white text-3xl font-bold tracking-widest">吃了吗</span>
                     <span class="text-white/80 text-xs mt-2 font-light">记录生活温度</span>
                 </button>
             </div>
         </div>
 
-        <div id="cameraView" class="hidden fixed inset-0 bg-black flex flex-col items-center justify-between z-50">
+        <div id="camera" class="view-section hidden fixed inset-0 bg-black flex flex-col items-center justify-between z-50">
             <div class="w-full p-6"><button onclick="location.reload()" class="text-white text-2xl">✕</button></div>
             <video id="video" autoplay playsinline class="w-full h-2/3 object-cover"></video>
             <div class="w-full pb-20 flex flex-col items-center">
-                <button id="shutter" class="w-24 h-24 bg-white rounded-full border-[10px] border-gray-300 shadow-2xl active:scale-90 transition-all"></button>
+                <button id="shutter" class="w-24 h-24 bg-white rounded-full border-[10px] border-gray-300 shadow-2xl active:scale-90 transition-all" onclick="window.takePhoto()"></button>
             </div>
         </div>
 
         <canvas id="canvas" class="hidden"></canvas>
-        <div id="photoPreview" class="hidden h-full flex flex-col items-center p-6 bg-[#FFF9F0] overflow-y-auto no-scrollbar">
+        <div id="preview" class="view-section hidden h-full flex flex-col items-center p-6 bg-[#FFF9F0] overflow-y-auto no-scrollbar">
             <img id="photo" alt="预览照片" class="w-full rounded-[2rem] shadow-2xl border-4 border-white mb-4 max-h-[45vh] object-cover" />
             <div class="w-full px-2 mb-6">
                 <p class="text-[10px] text-gray-400 mb-3 ml-2 uppercase tracking-widest">此刻心情</p>
@@ -249,7 +518,7 @@
             </div>
         </div>
 
-        <section id="squareView" class="hidden h-full overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
+        <section id="square" class="view-section hidden h-full overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
             <header id="squareHeader" class="p-8 text-center mt-12 transition-all">
                 <h1 class="text-5xl font-bold text-gray-900 tracking-tighter mb-4">吃了吗</h1>
                 <p class="text-lg text-gray-500 leading-relaxed font-light">每一个平凡的饭点，<br>都值得被温柔对待。</p>
@@ -265,8 +534,8 @@
             <div id="feedContainer" class="flex flex-col gap-6"></div>
             <div id="emptyState" class="hidden empty-state">
                 <i data-lucide="map-pin" class="w-16 h-16 text-orange-500 mb-4"></i>
-                <p class="text-lg font-medium mb-2">还没有烟火</p>
-                <p class="text-sm">成为第一个分享的人吧！</p>
+                <p class="text-lg font-medium mb-2">新生活从这一餐开始</p>
+                <p class="text-sm">记录你的第一餐吧！</p>
             </div>
             <div id="myEmptyState" class="hidden empty-state">
                 <i data-lucide="camera" class="w-16 h-16 text-orange-500 mb-4"></i>
@@ -275,7 +544,7 @@
             </div>
         </section>
 
-        <section id="careView" class="hidden h-full overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
+        <section id="miss" class="view-section hidden h-full overflow-y-auto px-6 pt-4 pb-32 no-scrollbar" style="display: none;">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">我牵挂的人</h1>
             <p class="text-gray-400 text-sm mb-6 italic">温柔看看他们有没有好好吃饭</p>
         
@@ -297,38 +566,53 @@
             </div>
         </section>
 
-        <section id="discoveryView" class="hidden min-h-screen flex flex-col px-6 pt-4 pb-32 bg-[#FFF9F0] overflow-y-auto">
+        <section id="eat" class="view-section hidden min-h-screen flex flex-col px-6 pt-4 pb-32 bg-[#FFF9F0] overflow-y-auto" style="display: none;">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">今天吃啥</h1>
             <p class="text-gray-400 text-sm mb-12">纠结结束，交给命运</p>
             <div class="flex-1 flex flex-col justify-center items-center pb-20">
                 <div class="w-64 h-64 bg-white rounded-full shadow-xl border-[10px] border-white flex items-center justify-center relative">
-                    <div id="foodResult" class="text-2xl font-bold text-orange-600 px-4 text-center">？</div>
+                    <div id="blindBoxResult" class="text-2xl font-bold text-orange-600 px-4 text-center">？</div>
                 </div>
-                <button id="spinBtn" class="mt-12 px-12 py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-lg btn-q弹 z-10">开启盲盒</button>
+                <button id="blindBoxBtn" class="mt-12 px-12 py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-lg btn-q弹 z-10" onclick="window.openBlindBox()">开启盲盒</button>
                 <p id="healthTip" class="mt-6 text-sm text-gray-400 opacity-0 transition-opacity italic">建议吃点清淡的哦</p>
             </div>
         </section>
-        <div id="matchModal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-2xl z-[100] flex flex-col items-center justify-center p-8 transition-all">
+        <div id="matchModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-xl z-[130] flex flex-col items-center justify-center p-8 transition-opacity duration-500">
+            
             <div id="matchLoading" class="flex flex-col items-center justify-center">
-                <div class="relative w-24 h-24 mb-6">
-                    <div class="absolute inset-0 border-4 border-orange-500/20 rounded-full"></div>
-                    <div class="absolute inset-0 border-4 border-t-orange-500 rounded-full animate-spin"></div>
-                    <i data-lucide="map-pin" class="w-12 h-12 text-orange-500 absolute inset-0 flex items-center justify-center"></i>
+                <div class="relative w-32 h-32 mb-8">
+                    <div class="absolute inset-0 bg-orange-500/30 rounded-full animate-ping"></div>
+                    <div class="absolute inset-4 bg-orange-500/50 rounded-full animate-pulse"></div>
+                    <div class="absolute inset-0 flex items-center justify-center z-10">
+                        <i data-lucide="radio-tower" class="w-12 h-12 text-white"></i>
+                    </div>
                 </div>
-                <p class="text-orange-400 font-medium tracking-[0.2em] animate-pulse">正在寻找此时此刻的饭友...</p>
-                <p class="text-gray-500 text-[10px] mt-2">穿越山海，去遇见另一份烟火</p>
+                <p class="text-white/90 font-medium tracking-widest text-lg animate-pulse">正在穿越人海，寻找另一份烟火...</p>
+                <p class="text-white/50 text-xs mt-3">跨越山海，去遇见陪你吃饭的人</p>
             </div>
-        
-            <div id="matchContent" class="hidden relative w-full max-w-xs animate-in zoom-in duration-700">
-                <p class="text-orange-400 text-center text-sm font-bold mb-6 tracking-widest">🎉 遇见了！</p>
-                <div class="bg-white p-4 pb-10 rounded-[2.5rem] shadow-2xl rotate-2">
-                    <img id="matchImage" src="" alt="匹配的饭友照片" class="w-full h-80 object-cover rounded-[1.5rem] mb-4 shadow-inner">
-                    <p id="matchMood" class="text-center text-xl font-bold text-gray-800"></p>
-                    <p id="matchLocation" class="text-center text-xs text-gray-400 mt-2"></p>
+
+            <div id="matchContent" class="hidden flex flex-col items-center w-full max-w-sm animate-in zoom-in duration-500">
+                <p class="text-orange-400 text-sm font-bold mb-4 tracking-[0.2em] uppercase">✨ 此时此刻，也有人陪你吃饭</p>
+                
+                <div class="bg-white p-3 pb-8 rounded-lg shadow-2xl rotate-2 transform transition-transform hover:rotate-0 duration-300 w-full relative">
+                    <div class="aspect-square bg-gray-100 mb-4 overflow-hidden rounded-sm relative">
+                        <img id="matchImage" src="" class="w-full h-full object-cover">
+                        <div class="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded text-[10px] text-white flex items-center gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i>
+                            <span id="matchTime">刚刚</span>
+                        </div>
+                    </div>
+                    <p id="matchText" class="text-gray-800 font-handwriting text-center text-lg px-2 min-h-[1.5rem]"></p>
                 </div>
-                <button onclick="closeMatch()" class="w-full mt-10 py-4 bg-orange-500 text-white rounded-full font-bold shadow-lg btn-q弹">
-                    去广场打个招呼
-                </button>
+
+                <div class="flex gap-4 mt-12 w-full">
+                    <button onclick="window.closeMatch()" class="flex-1 py-3 bg-white/10 text-white rounded-full text-sm backdrop-blur-md border border-white/20">
+                        默默离开
+                    </button>
+                    <button onclick="window.toastCheers()" class="flex-1 py-3 bg-orange-500 text-white rounded-full font-bold shadow-lg shadow-orange-500/40 flex items-center justify-center gap-2">
+                        <span>🥂</span> 碰一杯
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -350,6 +634,31 @@
             </div>
         </div>
 
+        <!-- 发布弹窗 -->
+        <div id="publishModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[120] flex items-end justify-center px-6 pb-10 pt-32">
+            <div class="bg-white rounded-t-3xl p-6 w-full max-w-sm shadow-2xl transform transition-transform duration-500 ease-out" style="transform: translateY(100%);">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-gray-800">记录这一刻</h3>
+                    <button id="closePublishModal" class="text-gray-400 text-xl btn-q弹">✕</button>
+                </div>
+                <!-- 照片预览区域 -->
+                <div class="mb-6 flex justify-center">
+                    <div id="publishPhotoPreview" class="w-64 h-48 rounded-2xl bg-orange-50 flex items-center justify-center cursor-pointer overflow-hidden shadow-lg hover:shadow-xl transition-all btn-q弹" onclick="handlePublishPhotoPreviewClick()">
+                        <i data-lucide="camera" class="w-16 h-16 text-orange-400"></i>
+                    </div>
+                </div>
+                <!-- 文字输入区域 -->
+                <div class="mb-8">
+                    <textarea id="publishText" placeholder="分享你的美食故事..." class="w-full h-32 resize-none border-none bg-[#FEF5E7] rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200" maxlength="200"></textarea>
+                    <div class="text-right text-xs text-gray-400 mt-1">0/200</div>
+                </div>
+                <!-- 发布按钮 -->
+                <button id="publishBtn" class="w-full py-4 bg-orange-500 text-white rounded-full font-bold shadow-lg btn-q弹">
+                    开饭
+                </button>
+            </div>
+        </div>
+
         <!-- 绑定牵挂人弹窗 -->
         <div id="followModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center px-6">
             <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
@@ -362,27 +671,40 @@
                 <button id="saveFollow" class="w-full py-3 bg-orange-500 text-white font-bold rounded-2xl btn-q弹">保存</button>
             </div>
         </div>
+    <!-- 礼物工具栏 -->
+    <div id="giftToolbar" class="fixed right-4 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-md rounded-full shadow-lg p-2 flex flex-col gap-2 z-30 opacity-0 transition-all duration-300">
+        <div class="gift-icon cursor-pointer p-3 rounded-full bg-orange-50 hover:bg-orange-100 transition-all" data-gift="bubble-tea">
+            <img src="/assets/bubble-tea.png" alt="奶茶" class="w-10 h-10">
+        </div>
+        <div class="gift-icon cursor-pointer p-3 rounded-full bg-orange-50 hover:bg-orange-100 transition-all" data-gift="wooden-spoon">
+            <img src="/assets/wooden-spoon.png" alt="勺子" class="w-10 h-10">
+        </div>
+        <div class="gift-icon cursor-pointer p-3 rounded-full bg-orange-50 hover:bg-orange-100 transition-all" data-gift="chopsticks">
+            <img src="/assets/chopsticks.png" alt="筷子" class="w-10 h-10">
+        </div>
+    </div>
+
     </main>
 
-    <nav class="bg-white/90 backdrop-blur-md border-t border-orange-50 p-4 flex justify-around items-center pb-10 z-40 safe-area-inset-bottom">
+    <nav class="bg-white/90 backdrop-blur-md border-t border-orange-50 p-4 flex justify-around items-end pb-10 z-40 safe-area-inset-bottom">
         <!-- 广场模块图标 -->
-        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-gray-400" data-view="square">
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-gray-400" data-view="square" onclick="switchView('square')">
             <div class="icon-container relative w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:translate-y-[-5px] duration-300" style="box-shadow: 0 10px 20px -5px rgba(255, 149, 0, 0.1), 0 5px 10px -5px rgba(255, 149, 0, 0.05);">
                 <span class="text-2xl">📍</span>
                 <div class="absolute top-2 right-2 w-2 h-2 bg-orange-300 rounded-full opacity-10"></div>
             </div>
             <span class="text-[10px]">广场</span>
         </div>
-        <!-- 记录模块图标 -->
-        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-orange-500 font-bold" data-view="start">
-            <div class="icon-container relative w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:translate-y-[-5px] duration-300" style="box-shadow: 0 10px 20px -5px rgba(255, 149, 0, 0.15), 0 5px 10px -5px rgba(255, 149, 0, 0.08);">
-                <span class="text-2xl">📸</span>
-                <div class="absolute top-2 right-2 w-2 h-2 bg-orange-400 rounded-full opacity-10"></div>
+        <!-- 记录模块图标 (中间) -->
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-orange-500" data-view="start" onclick="switchView('start')">
+            <div class="icon-container relative w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:translate-y-[-5px] duration-300" style="box-shadow: 0 10px 20px -5px rgba(255, 149, 0, 0.1), 0 5px 10px -5px rgba(255, 149, 0, 0.05);">
+                <span class="text-2xl text-orange-500">📸</span>
+                <div class="absolute top-2 right-2 w-2 h-2 bg-orange-300 rounded-full opacity-10"></div>
             </div>
             <span class="text-[10px]">记录</span>
         </div>
         <!-- 吃啥模块图标 -->
-        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-gray-400" data-view="discovery">
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-gray-400" data-view="discovery" onclick="switchView('discovery')">
             <div class="icon-container relative w-16 h-16 rounded-2xl bg-yellow-50 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:translate-y-[-5px] duration-300" style="box-shadow: 0 10px 20px -5px rgba(250, 204, 21, 0.1), 0 5px 10px -5px rgba(250, 204, 21, 0.05);">
                 <span class="text-2xl">🎲</span>
                 <div class="absolute top-2 right-2 w-2 h-2 bg-yellow-300 rounded-full opacity-10"></div>
@@ -390,7 +712,7 @@
             <span class="text-[10px]">吃啥</span>
         </div>
         <!-- 牵挂线模块图标 -->
-        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-gray-400" data-view="care">
+        <div class="nav-item flex flex-col items-center gap-1 cursor-pointer transition-all text-gray-400" data-view="care" onclick="switchView('care')">
             <div class="icon-container relative w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:translate-y-[-5px] duration-300" style="box-shadow: 0 10px 20px -5px rgba(239, 68, 68, 0.1), 0 5px 10px -5px rgba(239, 68, 68, 0.05);">
                 <span class="text-2xl">❤️</span>
                 <div class="absolute top-2 right-2 w-2 h-2 bg-red-300 rounded-full opacity-10"></div>
@@ -400,6 +722,10 @@
     </nav>
 
 
+    <script>
+        // 初始化Lucide图标
+        lucide.createIcons();
+    </script>
     <script src="app.js"></script>
 </body>
 </html>
